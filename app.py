@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from flask import Flask, request, jsonify, send_from_directory
 from recom import Video, VideoRecommender
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -128,9 +129,10 @@ def upload_video():
         return jsonify({'error': 'Missing metadata (title, category, description)'}), 400
 
     # Save file
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    filename, file_extension = os.path.splitext(file.filename)
+    randomized_filename = f"{filename}_{uuid.uuid4().hex[:8]}{file_extension}"
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], randomized_filename)
     file.save(file_path)
-
     # Save metadata
     with open(METADATA_FILE, 'r+') as f:
         metadata = json.load(f)
@@ -138,7 +140,7 @@ def upload_video():
             'title': title,
             'category': category,
             'description': description,
-            'filename': file.filename
+            'filename': randomized_filename
         })
         f.seek(0)
         json.dump(metadata, f, indent=4)
