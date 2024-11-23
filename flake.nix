@@ -20,6 +20,7 @@
               venvShellHook
               scikit-learn
               flask
+              requests
             ]);
         };
       });
