@@ -39,12 +39,12 @@ sample_videos = [
 # Fit the recommender with sample videos on startup
 recommender.fit(sample_videos)
 
-@app.route('/health', methods=['GET'])
+@app.route('/recom/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
     return jsonify({'status': 'healthy'})
 
-@app.route('/recommendations', methods=['POST'])
+@app.route('/recom/recommendations', methods=['POST'])
 def get_recommendations():
     """Get video recommendations based on current video."""
     try:
@@ -85,7 +85,7 @@ def get_recommendations():
             'message': f'Error processing request: {str(e)}'
         }), 500
 
-@app.route('/videos', methods=['POST'])
+@app.route('/recom/videos', methods=['POST'])
 def add_videos():
     """Add new videos to the recommendation system."""
     try:
