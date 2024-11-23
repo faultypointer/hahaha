@@ -129,8 +129,7 @@ def add_videos():
 
 
 
-# MongoDB Configuration
-app.config["MONGO_URI"] = "mongodb+srv://sangyog123:sangyog123@janakpur-hack.brcqk.mongodb.net/"
+app.config["MONGO_URI"] = "mongodb+srv://sangyog123:sangyog123@janakpur-hack.brcqk.mongodb.net/my_database"
 mongo = PyMongo(app)
 
 # Configuration
@@ -143,14 +142,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
 # Upload Video (User-specific)
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    # username = request.form.get('username')
-    # if not username or not mongo.db.users.find_one({"username": username}):
-    #     return jsonify({"error": "Invalid user"}), 401
-
     print("files: ", request.files)
     if 'file' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
@@ -163,20 +157,17 @@ def upload_file():
         filename = file.filename
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
-        print("mongo: ", mongo.)
+        print("MongoDB connection: ", mongo.db)
 
         # Save file metadata in MongoDB
-        # mongo.db.videos.insert_one({
-        #     "username": username,
-        #     "filename": filename,
-        #     "filepath": filepath
-        # })
+        mongo.db.videos.insert_one({
+            "filename": filename,
+            "filepath": filepath
+        })
 
         return jsonify({"success": True, "filename": filename, "filepath": filepath})
 
     return jsonify({"error": "File type not allowed"}), 400
-
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

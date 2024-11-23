@@ -12,7 +12,7 @@ class Video:
     category: str
 
 class VideoRecommender:
-    def __init__(self, title_weight=0.4, description_weight=0.4, category_weight=0.2):
+    def __init__(self, title_weight=0.4, description_weight=0.2, category_weight=0.4):
         """Initialize recommendation system with feature weights."""
         self.title_vectorizer = TfidfVectorizer(
             lowercase=True,
