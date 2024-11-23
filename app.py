@@ -1,5 +1,8 @@
+import os
 from flask import Flask, request, jsonify
 from recom import Video, VideoRecommender
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_pymongo import PyMongo
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -120,6 +123,60 @@ def add_videos():
             'status': 'error',
             'message': f'Error adding videos: {str(e)}'
         }), 500
+
+
+
+
+
+
+# MongoDB Configuration
+app.config["MONGO_URI"] = "mongodb+srv://sangyog123:sangyog123@janakpur-hack.brcqk.mongodb.net/"
+mongo = PyMongo(app)
+
+# Configuration
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# Upload Video (User-specific)
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    # username = request.form.get('username')
+    # if not username or not mongo.db.users.find_one({"username": username}):
+    #     return jsonify({"error": "Invalid user"}), 401
+
+    print("files: ", request.files)
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    if file and allowed_file(file.filename):
+        filename = file.filename
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        print("mongo: ", mongo.)
+
+        # Save file metadata in MongoDB
+        # mongo.db.videos.insert_one({
+        #     "username": username,
+        #     "filename": filename,
+        #     "filepath": filepath
+        # })
+
+        return jsonify({"success": True, "filename": filename, "filepath": filepath})
+
+    return jsonify({"error": "File type not allowed"}), 400
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

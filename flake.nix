@@ -21,6 +21,8 @@
               scikit-learn
               flask
               requests
+              flask-pymongo
+              hoppscotch
             ]);
         };
       });
