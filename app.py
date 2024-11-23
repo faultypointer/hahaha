@@ -1,5 +1,6 @@
 import os
-from flask import Flask, request, jsonify
+import json
+from flask import Flask, request, jsonify, send_from_directory
 from recom import Video, VideoRecommender
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_pymongo import PyMongo
@@ -10,37 +11,8 @@ app = Flask(__name__)
 # Initialize recommender system
 recommender = VideoRecommender()
 
-# Sample videos database (replace with your actual database)
-sample_videos = [
-    Video(
-        title="Introduction to Python Programming",
-        description="Learn the basics of Python programming language. Covers variables, data types, control structures, and functions.",
-        category="Programming Basics"
-    ),
-    Video(
-        title="Advanced Python: Object-Oriented Programming",
-        description="Master object-oriented programming concepts in Python. Learn about classes, inheritance, and polymorphism.",
-        category="Programming Advanced"
-    ),
-    Video(
-        title="Data Structures in Python",
-        description="Comprehensive guide to implementing and using data structures in Python. Covers lists, dictionaries, sets, and more.",
-        category="Programming Advanced"
-    ),
-    Video(
-        title="Machine Learning Fundamentals",
-        description="Introduction to machine learning concepts and algorithms using Python and scikit-learn.",
-        category="Data Science"
-    ),
-    Video(
-        title="Python for Data Analysis",
-        description="Learn data analysis using Python libraries like Pandas and NumPy. Includes data cleaning and visualization.",
-        category="Data Science"
-    )
-]
-
 # Fit the recommender with sample videos on startup
-recommender.fit(sample_videos)
+# recommender.fit(sample_videos)
 
 @app.route('/recom/health', methods=['GET'])
 def health_check():
@@ -126,48 +98,67 @@ def add_videos():
 
 
 
-
-
-
-app.config["MONGO_URI"] = "mongodb+srv://sangyog123:sangyog123@janakpur-hack.brcqk.mongodb.net/my_database"
-mongo = PyMongo(app)
-
-# Configuration
+# Directory to store uploaded videos
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# File to store metadata
+METADATA_FILE = 'video_metadata.json'
+if not os.path.exists(METADATA_FILE):
+    with open(METADATA_FILE, 'w') as f:
+        json.dump([], f)
 
-# Upload Video (User-specific)
+# API to upload videos
 @app.route('/upload', methods=['POST'])
-def upload_file():
-    print("files: ", request.files)
+def upload_video():
+    # Check for file in request
     if 'file' not in request.files:
-        return jsonify({"error": "No file part in the request"}), 400
-
+        return jsonify({'error': 'No file part in the request'}), 400
     file = request.files['file']
     if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+        return jsonify({'error': 'No file selected'}), 400
 
-    if file and allowed_file(file.filename):
-        filename = file.filename
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        print("MongoDB connection: ", mongo.db)
+    # Extract metadata
+    title = request.form.get('title')
+    category = request.form.get('category')
+    description = request.form.get('description')
 
-        # Save file metadata in MongoDB
-        mongo.db.videos.insert_one({
-            "filename": filename,
-            "filepath": filepath
+    if not title or not category or not description:
+        return jsonify({'error': 'Missing metadata (title, category, description)'}), 400
+
+    # Save file
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+
+    # Save metadata
+    with open(METADATA_FILE, 'r+') as f:
+        metadata = json.load(f)
+        metadata.append({
+            'title': title,
+            'category': category,
+            'description': description,
+            'filename': file.filename
         })
+        f.seek(0)
+        json.dump(metadata, f, indent=4)
 
-        return jsonify({"success": True, "filename": filename, "filepath": filepath})
+    return jsonify({'message': 'File uploaded successfully'}), 201
 
-    return jsonify({"error": "File type not allowed"}), 400
+# API to list all videos
+@app.route('/videos', methods=['GET'])
+def list_videos():
+    with open(METADATA_FILE, 'r') as f:
+        metadata = json.load(f)
+    return jsonify({'videos': metadata})
+
+# API to retrieve a specific video by filename
+@app.route('/videos/<filename>', methods=['GET'])
+def get_video(filename):
+    try:
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+    except FileNotFoundError:
+        return jsonify({'error': 'File not found'}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
