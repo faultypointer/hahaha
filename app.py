@@ -162,5 +162,38 @@ def get_video(filename):
     except FileNotFoundError:
         return jsonify({'error': 'File not found'}), 404
 
+
+import google.generativeai as genai
+gemini_key = 'AIzaSyBR49Xn825p4oBFLYPj2Kz95CzgETn9W7c'
+genai.configure(api_key=gemini_key)
+model = genai.GenerativeModel('gemini-1.5-flash')
+PRE_PROMPT = """
+You are acting as a chatbot for an Education website that helps students prepare
+for competitive exams. These are courses available on the sites:
+
+There are mock test the students can take. There are also analytical dashboard that shows
+the students their performances. Answer the follwoing questions or engage in conversations 
+
+the prompt will also contains past messages between you and students. Use that to give more
+appropriate answers. The message starring with `student: <<` and ending with `>>` is the query
+by student and between `gemini: <<` and `>>` is by you. When answering you don't need to do it
+between `gemini: <<` and `>>`
+
+"""
+
+@app.route('/chatbot', methods=['POST'])
+def chatbot():
+    prompt_data = request.get_json();
+    history = prompt_data['history']
+    prompt = ""
+    if history == "":
+        history = PRE_PROMPT
+    history += "student: <<" + prompt_data['prompt'] + ">>\n"
+    response = model.generate_content(history)
+    history += "gemini: <<" + response.text
+    return jsonify({'response': response.text, 'history': history})
+
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host="")
