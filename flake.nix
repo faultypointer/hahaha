@@ -13,6 +13,7 @@
             pkgs = import nixpkgs {
               inherit system;
               config.allowUnfree = true;
+              config.allowUnsafe = true;
             };
           });
     in {
@@ -20,7 +21,8 @@
         default = pkgs.mkShell {
           venvDir = ".venv";
           packages = with pkgs;
-            [ python311 ngrok ollama ] ++ (with pkgs.python311Packages; [
+            [ python311 ngrok ollama mongodb-compass ]
+            ++ (with pkgs.python311Packages; [
               pip
               venvShellHook
               scikit-learn
