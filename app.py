@@ -4,10 +4,11 @@ import uuid
 from flask import Flask, request, jsonify, send_from_directory
 from recom import Video, VideoRecommender
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_pymongo import PyMongo
+from flask_cors import CORS
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app)
 
 # Initialize recommender system
 recommender = VideoRecommender()
